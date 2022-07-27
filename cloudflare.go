@@ -33,7 +33,7 @@ func (p *Provider) Provision(ctx caddy.Context) error {
 
 // UnmarshalCaddyfile sets up the DNS provider from Caddyfile tokens. Syntax:
 //
-// cloudflare [<api_token>] {
+// cloudflare [<api_token>] [zone_hosting_challenges] {
 //     api_token <api_token>
 //     root_zone <zone_hosting_challenges>
 // }
@@ -45,6 +45,9 @@ func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			p.Provider.APIToken = d.Val()
 		}
 		if d.NextArg() {
+			p.Provider.RootZone = d.Val()
+		}
+		if d.NextArg() {
 			return d.ArgErr()
 		}
 		for nesting := d.Nesting(); d.NextBlock(nesting); {
@@ -54,9 +57,6 @@ func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 					return d.Err("API token already set")
 				}
 				p.Provider.APIToken = d.Val()
-				if d.NextArg() {
-					return d.ArgErr()
-				}
 			case "root_zone":
 				if p.Provider.RootZone != "" {
 					return d.Err("Root Zone already set")
