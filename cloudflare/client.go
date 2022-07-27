@@ -52,7 +52,7 @@ func (p *Provider) getDNSRecords(ctx context.Context, zoneInfo *cfZone, rec libd
 	return results, err
 }
 
-func (p *Provider) getZoneInfo(ctx context.Context, zoneName string) (*cfZone, error) {
+func (p *Provider) getZoneInfo(ctx context.Context) (*cfZone, error) {
 	p.zoneMu.Lock()
 	defer p.zoneMu.Unlock()
 
@@ -61,7 +61,7 @@ func (p *Provider) getZoneInfo(ctx context.Context, zoneName string) (*cfZone, e
 	}
 
 	qs := make(url.Values)
-	qs.Set("name", zoneName)
+	qs.Set("name", p.RootZone)
 	reqURL := fmt.Sprintf("%s/zones?%s", baseURL, qs.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
@@ -75,7 +75,7 @@ func (p *Provider) getZoneInfo(ctx context.Context, zoneName string) (*cfZone, e
 		return nil, err
 	}
 	if len(zones) != 1 {
-		return nil, fmt.Errorf("expected 1 zone, got %d for %s", len(zones), zoneName)
+		return nil, fmt.Errorf("expected 1 zone, got %d for %s", len(zones), p.RootZone)
 	}
 
 	p.zoneCache = &zones[0]

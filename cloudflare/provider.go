@@ -30,29 +30,32 @@ type Provider struct {
 }
 
 const (
-	stripToken = "_acme-challenger."
+	stripToken = "_acme-challenge."
 	slen       = len(stripToken)
 )
 
-func (p *Provider) strip(name string) string {
-	if strings.HasSuffix(name, stripToken) {
+func strip(name string) string {
+	if strings.HasPrefix(name, stripToken) {
 		return name[slen:]
 	}
 	return name
 }
 
+func rewrite(name, zone string) string {
+	fqdn := libdns.AbsoluteName(name, zone)
+	return strip(fqdn)
+}
+
 // AppendRecords adds records to the zone. It returns the records that were added.
 func (p *Provider) AppendRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	zoneInfo, err := p.getZoneInfo(ctx, p.RootZone)
+	zoneInfo, err := p.getZoneInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", records)
-
 	var created []libdns.Record
 	for _, rec := range records {
-		rec.Name = p.strip(rec.Name)
+		rec.Name = rewrite(rec.Name, zone)
 		result, err := p.createRecord(ctx, zoneInfo, rec)
 		if err != nil {
 			return nil, err
@@ -66,15 +69,14 @@ func (p *Provider) AppendRecords(ctx context.Context, zone string, records []lib
 // DeleteRecords deletes the records from the zone. If a record does not have an ID,
 // it will be looked up. It returns the records that were deleted.
 func (p *Provider) DeleteRecords(ctx context.Context, zone string, records []libdns.Record) ([]libdns.Record, error) {
-	zoneInfo, err := p.getZoneInfo(ctx, zone)
+	zoneInfo, err := p.getZoneInfo(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", records)
-
 	var recs []libdns.Record
 	for _, rec := range records {
+		rec.Name = libdns.RelativeName(rec.Name, p.RootZone)
 		// we create a "delete queue" for each record
 		// requested for deletion; if the record ID
 		// is known, that is the only one to fill the
