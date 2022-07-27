@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/libdns/libdns"
 )
@@ -44,6 +45,14 @@ func strip(name string) string {
 func rewrite(name, zone string) string {
 	fqdn := libdns.AbsoluteName(name, zone)
 	return strip(fqdn)
+}
+
+func (p *Provider) Validate() error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	_, err := p.getZoneInfo(ctx)
+	return err
 }
 
 // AppendRecords adds records to the zone. It returns the records that were added.
